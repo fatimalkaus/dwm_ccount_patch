@@ -1,0 +1,67 @@
+diff --git a/dwm.c b/dwm.c
+index f1d86b2..ea95546 100644
+--- a/dwm.c
++++ b/dwm.c
+@@ -233,6 +233,7 @@ static int xerror(Display *dpy, XErrorEvent *ee);
+ static int xerrordummy(Display *dpy, XErrorEvent *ee);
+ static int xerrorstart(Display *dpy, XErrorEvent *ee);
+ static void zoom(const Arg *arg);
++static int ccount(Monitor *m, int tid);
+ 
+ /* variables */
+ static const char broken[] = "broken";
+@@ -699,9 +700,12 @@ void
+ drawbar(Monitor *m)
+ {
+ 	int x, w, tw = 0;
++	int boxx, boxy;
+ 	int boxs = drw->fonts->h / 9;
+-	int boxw = drw->fonts->h / 6 + 2;
+-	unsigned int i, occ = 0, urg = 0;
++	int boxw = drw->fonts->h / 6 + 1;
++	int bpad = boxw / 2;
++	unsigned int i, j, occ = 0, urg = 0;
++	int clients;
+ 	Client *c;
+ 
+ 	if (!m->showbar)
+@@ -724,10 +728,17 @@ drawbar(Monitor *m)
+ 		w = TEXTW(tags[i]);
+ 		drw_setscheme(drw, scheme[m->tagset[m->seltags] & 1 << i ? SchemeSel : SchemeNorm]);
+ 		drw_text(drw, x, 0, w, bh, lrpad / 2, tags[i], urg & 1 << i);
+-		if (occ & 1 << i)
+-			drw_rect(drw, x + boxs, boxs, boxw, boxw,
+-				m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
+-				urg & 1 << i);
++		if (occ & 1 << i) {
++                       clients = ccount(m, i);
++                       for (j = 0; j < clients && j < 6; j++) {
++                               boxx = j < 3 ? x + boxs : x + w - 2 * boxs - bpad;
++                               boxy = j < 3 ? boxs + j * (boxw + bpad) : boxs + (j - 3) * (boxw + bpad);
++
++                               drw_rect(drw, boxx, boxy, boxw, boxw,
++                                       m == selmon && selmon->sel && selmon->sel->tags & 1 << i,
++                                       urg & 1 << i);
++                       }
++		}
+ 		x += w;
+ 	}
+ 	w = TEXTW(m->ltsymbol);
+@@ -2140,6 +2151,17 @@ zoom(const Arg *arg)
+ 	pop(c);
+ }
+ 
++int
++ccount(Monitor *m, int tid) {
++	int count = 0;
++	Client *c;
++	for (c = m->clients; c; c = c->next){
++		if (c->tags & 1 << tid)
++			count++;
++	}
++	return count;
++}
++
+ int
+ main(int argc, char *argv[])
+ {
